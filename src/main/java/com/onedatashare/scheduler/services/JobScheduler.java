@@ -54,6 +54,7 @@ public class JobScheduler {
             transferJobRequest.setTransferNodeName(transferRequest.getDestination().getCredId());
         }
         this.fileTransferScheduleMap.putJob(transferJobRequest, jobStartTime);
+
         return jobUuid;
     }
 

@@ -31,16 +31,18 @@ public class JobSchedulerAlgo implements Runnable {
     private final MessageSender messageSender;
     private final Logger logger = LoggerFactory.getLogger(JobSchedulerAlgo.class);
     private final IScheduledExecutorService jobSchedulerExecutorService;
+    private final JobAndNodeClassification jobAndNodeClassification;
 
     @Autowired
     FileTransferNodeDiscovery fileTransferNodeDiscovery;
 
-    public JobSchedulerAlgo(IScheduledExecutorService jobSchedulerExecutorService, InitialAndFinalJobCarbonMapService initialAndFinalJobCarbonMapService, TransferSchedulerMapService transferSchedulerMapService, CarbonMapService carbonMapService, MessageSender messageSender) {
+    public JobSchedulerAlgo(IScheduledExecutorService jobSchedulerExecutorService, InitialAndFinalJobCarbonMapService initialAndFinalJobCarbonMapService, TransferSchedulerMapService transferSchedulerMapService, CarbonMapService carbonMapService, MessageSender messageSender, JobAndNodeClassification jobAndNodeClassification) {
         this.transferSchedulerMapService = transferSchedulerMapService;
         this.carbonIntensityMap = carbonMapService;
         this.initialAndFinalJobCarbonMapService = initialAndFinalJobCarbonMapService;
         this.messageSender = messageSender;
         this.jobSchedulerExecutorService = jobSchedulerExecutorService;
+        this.jobAndNodeClassification = jobAndNodeClassification;
     }
 
     @PostConstruct
