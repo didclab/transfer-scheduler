@@ -39,12 +39,10 @@ import java.util.UUID;
 public class CacheConfig {
 
     private final Environment env;
-    private final VaultSSLService vaultSslService;
     private final Logger logger;
 
-    public CacheConfig(Environment environment, VaultSSLService vaultSSLService) {
+    public CacheConfig(Environment environment) {
         this.env = environment;
-        this.vaultSslService = vaultSSLService;
         this.logger = LoggerFactory.getLogger(CacheConfig.class);
     }
 
@@ -81,18 +79,17 @@ public class CacheConfig {
 
     @Bean(name = "hazelcastInstance")
     @Profile("dev")
-    public HazelcastInstance devHazelcastInstance(SSLConfig sslConfig) {
+    public HazelcastInstance devHazelcastInstance() {
         Config config = new Config();
         config.setClusterName("dev-scheduler-cluster");
-        config.setLicenseKey(this.hazelcastLicenseKey);
-        config.getNetworkConfig().setSSLConfig(sslConfig);
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().setPortAutoIncrement(true);
         return Hazelcast.newHazelcastInstance(config);
     }
 
     @Bean
-    public SSLConfig sslConfig() {
+    @Profile("prod")
+    public SSLConfig sslConfig(VaultSSLService vaultSslService) {
         Properties properties = new Properties();
         properties.setProperty("protocol", "TLSv1.2");
         properties.setProperty("mutualAuthentication", "OPTIONAL");
@@ -102,7 +99,7 @@ public class CacheConfig {
         SSLConfig sslConfig = new SSLConfig();
         sslConfig.setEnabled(true);
         sslConfig.setProperties(properties);
-        sslConfig.setFactoryImplementation(this.vaultSslService);
+        sslConfig.setFactoryImplementation(vaultSslService);
 
         return sslConfig;
     }
