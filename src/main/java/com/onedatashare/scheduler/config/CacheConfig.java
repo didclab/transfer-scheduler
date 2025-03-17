@@ -82,6 +82,7 @@ public class CacheConfig {
     public HazelcastInstance devHazelcastInstance() {
         Config config = new Config();
         config.setClusterName("dev-scheduler-cluster");
+        config.setLicenseKey(this.hazelcastLicenseKey);
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(false);
         config.getNetworkConfig().setPortAutoIncrement(true);
         return Hazelcast.newHazelcastInstance(config);
