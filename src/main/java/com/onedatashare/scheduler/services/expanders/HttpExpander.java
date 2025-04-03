@@ -98,6 +98,23 @@ public class HttpExpander extends DestinationChunkSize implements FileExpander {
         return filesToSend;
     }
 
+    @SneakyThrows
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+        List<EntityInfo> destFilesList = new ArrayList<>();
+        Stack<Element> directoriesToTraverse = new Stack<>();
+        if (basePath.isEmpty()) basePath = "/";
+
+        Document doc = Jsoup.connect(this.credential.getUri() + basePath).get();
+        Elements links = doc.select("body a");
+        for (Element elem : links) {
+            //ignore dir, consider all files and add to list
+            if (!elem.text().endsWith("/")) {
+                destFilesList.add(fromElement(elem));
+            }
+        }
+        return destFilesList;
+    }
+
     public EntityInfo fromElement(Element elem) throws IOException {
         EntityInfo fileInfo = new EntityInfo();
         URL url = new URL(elem.absUrl("href"));

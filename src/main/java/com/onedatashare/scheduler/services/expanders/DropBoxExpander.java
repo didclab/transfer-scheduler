@@ -71,6 +71,21 @@ public class DropBoxExpander extends DestinationChunkSize implements FileExpande
         return expandedFiles;
     }
 
+    public List<EntityInfo> expandedDestFileSystem(String parentPath) {
+        Stack<Metadata> traversalQueue = new Stack<>();
+        List<EntityInfo> destFilesList = new ArrayList<>();
+        if (parentPath == null || parentPath.isEmpty()) parentPath = "";
+        //Expand all the files.
+
+        List<Metadata> resources = listOp(parentPath);
+        for (Metadata resource : resources) {
+            if (resource instanceof FileMetadata) {
+                destFilesList.add(metaDataToFileInfo((FileMetadata) resource));
+            }
+        }
+        return destFilesList;
+    }
+
     public EntityInfo metaDataToFileInfo(FileMetadata file) {
         EntityInfo fileInfo = new EntityInfo();
         fileInfo.setSize(file.getSize());

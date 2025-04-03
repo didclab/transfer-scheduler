@@ -79,6 +79,38 @@ public class RequestModifier {
         return null;
     }
 
+    public List<EntityInfo> selectAndExpandDestination(TransferJobRequest.Destination destination, List<EntityInfo> selectedResources) {
+        //logger.info("The info list in select and expand is \n" + selectedResources.toString());
+        switch (destination.getType()) {
+            case ftp:
+                ftpExpander.createClient(destination.getVfsDestCredential());
+                return ftpExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case s3:
+                s3Expander.createClient(destination.getVfsDestCredential());
+                return s3Expander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case sftp:
+            case scp:
+                sftpExpander.createClient(destination.getVfsDestCredential());
+                return sftpExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case http:
+                httpExpander.createClient(destination.getVfsDestCredential());
+                return httpExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case box:
+                boxExpander.createClient(destination.getOauthDestCredential());
+                return boxExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case dropbox:
+                dropBoxExpander.createClient(destination.getOauthDestCredential());
+                return dropBoxExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+            case vfs:
+                return selectedResources;
+            case gdrive:
+                gDriveExpander.createClient(destination.getOauthDestCredential());
+                return gDriveExpander.expandedDestFileSystem(destination.getFileDestinationPath());
+
+        }
+        return null;
+    }
+
     /**
      * This method is supposed to take a list of Files that are expanded and make sure the chunk size being used is supported by the source/destination
      * So far all what I can tell is that Box has an "optimized" chunk size that we should use to write too.
@@ -153,7 +185,25 @@ public class RequestModifier {
         List<EntityInfo> expandedFiles = this.selectAndExpand(s, odsTransferRequest.getSource().getResourceList());
         logger.info("Expanded files: {}", expandedFiles);
         expandedFiles = this.checkDestinationChunkSize(expandedFiles, d, odsTransferRequest.getOptions().getChunkSize());
-        s.setInfoList(expandedFiles);
+
+        //Overwrite checker
+        if (transferJobRequest.getOptions().isOverwrite())
+            s.setInfoList(expandedFiles);
+        else {
+            //Check files present in destination
+            List<EntityInfo> destExpandedFiles = this.selectAndExpandDestination(d, new ArrayList<>());
+
+            //for each file ID at dest, check if present in source list, if yes, remove that file id from src info list
+            for (EntityInfo destFile : destExpandedFiles) {
+                for (EntityInfo srcFile : expandedFiles) {
+                    if (destFile.getId().equals(srcFile.getId())) {
+                        expandedFiles.remove(srcFile);
+                    }
+                }
+            }
+            s.setInfoList(expandedFiles);
+        }
+
         transferJobRequest.setSource(s);
         transferJobRequest.setDestination(d);
         transferJobRequest.setTransferNodeName(odsTransferRequest.getTransferNodeName());

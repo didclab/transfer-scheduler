@@ -30,29 +30,35 @@ public class BoxExpander extends DestinationChunkSize implements FileExpander {
     public List<EntityInfo> expandedFileSystem(List<EntityInfo> userSelectedResources, String basePath) {
         List<EntityInfo> transferFiles = new ArrayList<>();
         Stack<BoxFolder> travStack = new Stack<>();//this will only hold folders to traverse
-        if(userSelectedResources.isEmpty()) return new ArrayList<>(); //we need to signal the cancellation of this transferjob request.
-        for(EntityInfo selectedResource : userSelectedResources){
-            boolean isFile = false;
-            try{
-                BoxFile temp = new BoxFile(this.connection, selectedResource.getId());
-                transferFiles.add(boxFileToEntityInfo(temp));
-                isFile = true;
-            }catch (BoxAPIException ignored){
-                logger.info("Tried to open {} as a file but it did not work", selectedResource.toString());
-                isFile = false;
-            }
-            if(!isFile){
-                try{
-                    BoxFolder temp = new BoxFolder(this.connection, selectedResource.getId());
-                    travStack.push(temp);
-                }catch (BoxAPIException ignored){
-                    logger.info("Tried to open {} as a folder but it did not work", selectedResource.toString());
+        if (userSelectedResources.isEmpty()) {
+            //id = 0 represents root folder in box
+            BoxFolder temp = new BoxFolder(this.connection, "0");
+            travStack.push(temp);
+        } else {
+            for (EntityInfo selectedResource : userSelectedResources) {
+                boolean isFile = false;
+                try {
+                    BoxFile temp = new BoxFile(this.connection, selectedResource.getId());
+                    transferFiles.add(boxFileToEntityInfo(temp));
+                    isFile = true;
+                } catch (BoxAPIException ignored) {
+                    logger.info("Tried to open {} as a file but it did not work", selectedResource.toString());
+                    isFile = false;
+                }
+                if (!isFile) {
+                    try {
+                        BoxFolder temp = new BoxFolder(this.connection, selectedResource.getId());
+                        travStack.push(temp);
+                    } catch (BoxAPIException ignored) {
+                        logger.info("Tried to open {} as a folder but it did not work", selectedResource.toString());
+                    }
                 }
             }
         }
-        while(!travStack.isEmpty()){
+
+        while (!travStack.isEmpty()) {
             BoxFolder folder = travStack.pop();
-            for(BoxItem.Info child : folder){
+            for (BoxItem.Info child : folder) {
                 if (child instanceof BoxFile.Info) {
                     BoxFile.Info fileInfo = (BoxFile.Info) child;
                     BoxFile boxFile = new BoxFile(this.connection, fileInfo.getID());
@@ -67,13 +73,41 @@ public class BoxExpander extends DestinationChunkSize implements FileExpander {
         return transferFiles;
     }
 
+
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+        List<EntityInfo> destFilesList = new ArrayList<>();
+        Stack<BoxFolder> travStack = new Stack<>();//this will only hold folders to traverse
+
+        try {
+            //id = 0 represents root folder in box
+            BoxFolder temp = new BoxFolder(this.connection, "0");
+            travStack.push(temp);
+        } catch (BoxAPIException ignored) {
+            logger.info("Tried to open {} as a folder but it did not work", "0");
+        }
+
+
+        while (!travStack.isEmpty()) {
+            BoxFolder folder = travStack.pop();
+            for (BoxItem.Info child : folder) {
+                //ignore folders, if a file, add to list
+                if (child instanceof BoxFile.Info) {
+                    BoxFile.Info fileInfo = (BoxFile.Info) child;
+                    BoxFile boxFile = new BoxFile(this.connection, fileInfo.getID());
+                    destFilesList.add(boxFileToEntityInfo(boxFile));
+                }
+            }
+        }
+        return destFilesList;
+    }
+
     @Override
     public List<EntityInfo> destinationChunkSize(List<EntityInfo> expandedFiles, String basePath, Integer userChunkSize) {
         BoxFolder destinationUploadFolder = new BoxFolder(this.connection, basePath);
-        for(EntityInfo entityInfo : expandedFiles){
-            if(entityInfo.getSize() < 1024*1024*20){
+        for (EntityInfo entityInfo : expandedFiles) {
+            if (entityInfo.getSize() < 1024 * 1024 * 20) {
                 entityInfo.setChunkSize(Math.toIntExact(entityInfo.getSize()));
-            }else{
+            } else {
                 BoxFileUploadSession.Info uploadSession = destinationUploadFolder.createUploadSession(entityInfo.getId(), entityInfo.getSize());
                 entityInfo.setChunkSize(uploadSession.getPartSize());
             }

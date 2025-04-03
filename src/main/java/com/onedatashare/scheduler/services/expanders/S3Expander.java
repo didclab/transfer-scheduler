@@ -67,6 +67,20 @@ public class S3Expander extends DestinationChunkSize implements FileExpander {
         return traversedFiles;
     }
 
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+        List<EntityInfo> traversedFiles = new LinkedList<>();
+        //trim leading forward slashes from base path (s3 doesn't recognise it as root)
+        basePath = StringUtils.stripStart(basePath, "/");
+
+        //expand the whole bucket relative to the basePath
+        ListObjectsV2Result result = this.s3Client.listObjectsV2(createSkeletonPerResource(basePath));
+        traversedFiles.addAll(convertV2ResultToEntityInfoList(result));
+
+        //is this check required before adding to list? --> if(obj.getKey().endsWith("/"))
+
+        return traversedFiles;
+    }
+
     public List<EntityInfo> convertV2ResultToEntityInfoList(ListObjectsV2Result result){
         List<EntityInfo> traversedFiles = new LinkedList<>();
         for(S3ObjectSummary fileInfo : result.getObjectSummaries()){

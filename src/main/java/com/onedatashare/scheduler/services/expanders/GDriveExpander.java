@@ -73,6 +73,15 @@ public class GDriveExpander extends DestinationChunkSize implements FileExpander
         return fileInfoList;
     }
 
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+        Stack<File> fileListStack = new Stack<>();
+        List<EntityInfo> destFilesList = new ArrayList<>();
+
+        googleDriveLister(fileListStack, destFilesList, "", "");
+
+        return destFilesList;
+    }
+
     private void googleDriveLister(Stack<File> fileListStack, List<EntityInfo> fileInfoList, String fileQuery, String parentFolderId) {
         FileList fileList;
         String pageToken = "";

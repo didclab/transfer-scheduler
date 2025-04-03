@@ -96,4 +96,39 @@ public class FTPExpander extends DestinationChunkSize implements FileExpander {
         }
         return filesToTransferList;
     }
+
+    @SneakyThrows
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+
+        List<EntityInfo> destFilesList = new LinkedList<>();
+        Stack<FileObject> traversalStack = new Stack<>();
+        FileSystemManager fsm = VFS.getManager();
+        if(basePath.isEmpty() || basePath == null || !basePath.endsWith("/")) basePath += "/";
+
+        FileObject obj = fsm.resolveFile(this.vfsCredential.getUri() + basePath, this.options);
+        //traversalStack.push(obj);
+
+        //get all files/folders from dest path and add to stack
+        traversalStack.addAll(Arrays.asList(obj.getChildren()));
+
+
+        for (int files = Integer.MAX_VALUE; files > 0 && !traversalStack.isEmpty(); --files) {
+            FileObject curr = traversalStack.pop();
+            FileName fileName = curr.getName();
+            URI uri = URI.create(fileName.getURI());
+            logger.info(uri.toString());
+
+            // check all files only. If a file, add it to the list of destFilesList, else if folder, ignore
+            if (curr.getType() == FileType.FILE) {
+
+                //filePath = curr.getPublicURIString().substring(this.vfsCredential.getUri().length()+basePath.length());
+                EntityInfo fileInfo = new EntityInfo();
+                fileInfo.setId(curr.getName().getBaseName());
+                fileInfo.setPath(uri.getPath());
+                fileInfo.setSize(curr.getContent().getSize());
+                destFilesList.add(fileInfo);
+            }
+        }
+        return destFilesList;
+    }
 }

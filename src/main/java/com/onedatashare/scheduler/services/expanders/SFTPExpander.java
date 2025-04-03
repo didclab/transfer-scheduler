@@ -124,4 +124,40 @@ public class SFTPExpander extends DestinationChunkSize implements FileExpander {
         }
         return filesToTransferList;
     }
+
+    @SneakyThrows
+    public List<EntityInfo> expandedDestFileSystem(String basePath) {
+        //if(!basePath.endsWith("/")) basePath +="/";
+
+        List<EntityInfo> destFilesList = new LinkedList<>();
+        Stack<ChannelSftp.LsEntry> traversalStack = new Stack<>();
+        HashMap<ChannelSftp.LsEntry, String> entryToFullPath = new HashMap<>();
+        if (basePath.isEmpty()) basePath = channelSftp.pwd();
+        if(!basePath.endsWith("/")) basePath += "/";
+
+        Vector<ChannelSftp.LsEntry> fileVector = channelSftp.ls(basePath);
+        for (ChannelSftp.LsEntry curr : fileVector) {
+            entryToFullPath.put(curr, basePath + curr.getFilename());
+            traversalStack.add(curr);
+        }
+
+
+        while (!traversalStack.isEmpty()) {
+            ChannelSftp.LsEntry curr = traversalStack.pop();
+            String fullPath = entryToFullPath.remove(curr);
+            if (curr.getFilename().equals(".") || curr.getFilename().equals("..")) { //skip these two
+                continue;
+            }
+
+            // if dir skip, if file add to list
+            if (!curr.getAttrs().isDir()) {
+                EntityInfo fileInfo = new EntityInfo();
+                fileInfo.setPath(fullPath);
+                fileInfo.setId(curr.getFilename());
+                fileInfo.setSize(curr.getAttrs().getSize());
+                destFilesList.add(fileInfo);
+            }
+        }
+        return destFilesList;
+    }
 }
